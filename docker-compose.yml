@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  web:
+    container_name: api_get_web
+    build:
+      context: ./
+      dockerfile: _docker/web/Dockerfile
+    command: >
+      bash -c "uvicorn app:app --port ${SERVER_PORT} --host 0.0.0.0"
+    volumes:
+      - ./gateway:/home/app
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    env_file:
+      - .env
+    depends_on:
+      - amqp
+    restart: always
+
+  calcu:
+    container_name: api_get_calcu
+    build:
+      context: ./
+      dockerfile: _docker/calcu/Dockerfile
+    command: python app.py
+    volumes:
+      - ./calcu:/home/calcu
+    env_file:
+      - .env
+    depends_on:
+      - amqp
+    restart: always
+
+  amqp:
+    container_name: api_get_amqp_
+    hostname: 'rabbit'
+    build:
+      context: ./
+      dockerfile: _docker/amqp/Dockerfile
+    env_file:
+      - ./.env
+    ports:
+      - ${AMQP_WEB_PORT}:15672
+    expose:
+      - ${AMQP_PORT}:5672
+    restart: on-failure
